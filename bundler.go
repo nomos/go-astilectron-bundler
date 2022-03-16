@@ -62,6 +62,8 @@ type Configuration struct {
 	// Defaults to the `Bind.Package` value
 	LDFlagsPackage string `json:"ldflags_package"`
 
+	PackageName string `json:"package-name"`
+
 	// The path to application manifest file (WINDOWS ONLY)
 	ManifestPath string `json:"manifest_path"`
 
@@ -141,6 +143,7 @@ type Bundler struct {
 	pathBindInput        string
 	pathBindOutput       string
 	pathBuild            string
+	packageName          string
 	pathCache            string
 	pathIconDarwin       string
 	pathIconLinux        string
@@ -179,6 +182,7 @@ func New(c *Configuration, l astikit.StdLogger) (b *Bundler, err error) {
 	// Init
 	b = &Bundler{
 		appName:     c.AppName,
+		packageName: c.PackageName,
 		bindPackage: c.Bind.Package,
 		d: astikit.NewHTTPDownloader(astikit.HTTPDownloaderOptions{
 			Sender: astikit.HTTPSenderOptions{
@@ -265,11 +269,15 @@ func New(c *Configuration, l astikit.StdLogger) (b *Bundler, err error) {
 	}
 
 	// Paths that depends on the input path
-	for _, i := range filepath.SplitList(os.Getenv("GOPATH")) {
-		var p = filepath.Join(i, "src")
-		if strings.HasPrefix(b.pathInput, p) {
-			b.pathBuild = strings.TrimPrefix(strings.TrimPrefix(b.pathInput, p), string(os.PathSeparator))
-			break
+	if b.packageName != "" {
+		b.pathBuild = b.packageName
+	} else {
+		for _, i := range filepath.SplitList(os.Getenv("GOPATH")) {
+			var p = filepath.Join(i, "src")
+			if strings.HasPrefix(b.pathInput, p) {
+				b.pathBuild = strings.TrimPrefix(strings.TrimPrefix(b.pathInput, p), string(os.PathSeparator))
+				break
+			}
 		}
 	}
 
@@ -433,7 +441,7 @@ func (b *Bundler) bundle(e ConfigurationEnvironment) (err error) {
 
 	var binaryPath = filepath.Join(environmentPath, "binary")
 	args = append(args, "-o", binaryPath, b.pathBuild)
-
+	b.l.Debugf(b.pathBuild)
 	// Build cmd
 	b.l.Debugf("Building for os %s and arch %s astilectron: %s electron: %s", e.OS, e.Arch, b.versionAstilectron, b.versionElectron)
 	var cmd = exec.Command(b.pathGoBinary, args...)

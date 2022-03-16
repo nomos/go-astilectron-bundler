@@ -10,3 +10,5 @@ require (
 	github.com/sam-kamerer/go-plister v1.2.0
 	github.com/stretchr/testify v1.4.0
 )
+
+replace github.com/asticode/go-astilectron v0.25.0 => github.com/nomos/go-astilectron v0.25.299
